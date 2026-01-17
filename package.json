@@ -24,6 +24,7 @@
     "@langchain/community": "^0.3.0",
     "@langchain/core": "^0.3.0",
     "@langchain/langgraph": "^0.2.0",
+    "@langchain/ollama": "^1.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",
     "express": "^5.2.1",

@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { ChatOpenAI } from '@langchain/openai';
+import { ChatOllama } from '@langchain/ollama';
 import { StateGraph } from '@langchain/langgraph';
 import { Annotation } from '@langchain/langgraph';
 import { HumanMessage, AIMessage, SystemMessage } from '@langchain/core/messages';
@@ -36,15 +37,29 @@ const StateAnnotation = Annotation.Root({
 
 // ==================== 初始化模型 ====================
 
-const llm = new ChatOpenAI({
-  apiKey: process.env.DEEPSEEK_API_KEY,
-  modelName: 'deepseek-chat',
-  temperature: parseFloat(process.env.TEMPERATURE) || 0.7,
-  maxTokens: parseInt(process.env.MAX_TOKENS) || 2000,
-  configuration: {
-    baseURL: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1',
-  },
-});
+// 根据环境变量选择 LLM 提供商
+let llm;
+
+if (process.env.LLM_PROVIDER === 'ollama') {
+  console.log('🦙 使用 Ollama 本地模型:', process.env.OLLAMA_MODEL);
+  llm = new ChatOllama({
+    baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+    model: process.env.OLLAMA_MODEL || 'medical-assistant',
+    temperature: parseFloat(process.env.TEMPERATURE) || 0.7,
+    numPredict: parseInt(process.env.MAX_TOKENS) || 2000,
+  });
+} else {
+  console.log('🌐 使用 DeepSeek API');
+  llm = new ChatOpenAI({
+    apiKey: process.env.DEEPSEEK_API_KEY,
+    modelName: 'deepseek-chat',
+    temperature: parseFloat(process.env.TEMPERATURE) || 0.7,
+    maxTokens: parseInt(process.env.MAX_TOKENS) || 2000,
+    configuration: {
+      baseURL: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1',
+    },
+  });
+}
 
 // ==================== 定义Schema ====================
 
@@ -79,7 +94,28 @@ const RecommendationSchema = z.object({
  * 辅助函数：解析 LLM 返回的 JSON
  */
 async function invokeWithSchema(llm, messages, schema) {
-  const systemPrompt = `你是一个专业的医疗助手。请以 JSON 格式返回响应，不要包含任何其他文本。
+  const isOllama = process.env.LLM_PROVIDER === 'ollama';
+  
+  // 生成示例 JSON（基于 schema）
+  const exampleJson = {};
+  for (const key in schema.shape) {
+    const def = schema.shape[key];
+    exampleJson[key] = def._def?.default?.() || 
+                      (def._def?.typeName === 'ZodArray' ? [] : 
+                       def._def?.typeName === 'ZodBoolean' ? false : 
+                       def._def?.typeName === 'ZodNumber' ? 0 : '');
+  }
+  
+  const systemPrompt = isOllama 
+    ? `你是一个专业的医疗助手。
+
+请严格按照以下 JSON 格式返回响应，不要包含任何其他文本：
+
+示例格式：
+${JSON.stringify(exampleJson, null, 2)}
+
+你的响应必须是纯 JSON，格式完全符合上述示例。不要使用 markdown 代码块，不要添加任何解释。`
+    : `你是一个专业的医疗助手。请以 JSON 格式返回响应，不要包含任何其他文本。
 
 JSON Schema:
 ${JSON.stringify(schema.shape, null, 2)}`;
@@ -91,12 +127,30 @@ ${JSON.stringify(schema.shape, null, 2)}`;
 
   // 提取 JSON
   let jsonStr = response.content;
+  
+  // 如果内容是数组（Ollama 可能返回数组），取第一个元素
+  if (Array.isArray(jsonStr)) {
+    jsonStr = jsonStr[0]?.text || jsonStr[0]?.content || JSON.stringify(jsonStr[0]);
+  }
+  
+  // 转换为字符串
+  if (typeof jsonStr !== 'string') {
+    jsonStr = String(jsonStr);
+  }
+  
+  // 尝试提取 JSON（支持 markdown 代码块）
   const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
     jsonStr = jsonMatch[0];
   }
 
-  return schema.parse(JSON.parse(jsonStr));
+  try {
+    return schema.parse(JSON.parse(jsonStr));
+  } catch (error) {
+    console.error('JSON 解析错误:', error.message);
+    console.error('原始响应:', response.content);
+    throw new Error(`无法解析 LLM 响应为 JSON: ${error.message}`);
+  }
 }
 
 /**
@@ -378,9 +432,10 @@ function createMedicalGraph() {
 // ==================== 主函数 ====================
 
 async function main() {
+  const providerName = process.env.LLM_PROVIDER === 'ollama' ? 'Ollama (本地)' : 'DeepSeek (云端)';
   console.log('==========================================');
   console.log('🏥 医疗问诊智能体');
-  console.log('基于 LangChain + LangGraph + DeepSeek');
+  console.log(`基于 LangChain + LangGraph + ${providerName}`);
   console.log('==========================================\n');
 
   // 创建图
