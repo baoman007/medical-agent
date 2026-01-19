@@ -1,0 +1,10 @@
+/* pages/history/history.wxss */
+.container {
+  padding: 20rpx;
+  padding-top: 40rpx;
+}
+
+.empty {
+  text-align: center;
+  padding: 100rpx 0;
+}

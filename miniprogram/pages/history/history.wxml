@@ -1,0 +1,22 @@
+<view class="container">
+  <view class="card">
+    <view class="title">📋 问诊历史</view>
+
+    <t-cell-group wx:if="{{historyList.length > 0}}">
+      <t-cell
+        wx:for="{{historyList}}"
+        wx:key="id"
+        title="{{item.message}}"
+        note="{{item.timestamp}}"
+        arrow
+        bindtap="viewHistory"
+        data-item="{{item}}"
+      />
+    </t-cell-group>
+
+    <view wx:else class="empty">
+      <t-icon name="info-circle" size="80" color="#ddd" />
+      <text style="display: block; margin-top: 20rpx; color: #999;">暂无问诊记录</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,9 @@
+{
+  "name": "medical-agent-miniprogram",
+  "version": "1.0.0",
+  "description": "智能医疗助手微信小程序",
+  "main": "app.js",
+  "dependencies": {
+    "tdesign-miniprogram": "^1.12.1"
+  }
+}

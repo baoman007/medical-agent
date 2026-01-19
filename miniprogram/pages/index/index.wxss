@@ -1,0 +1,31 @@
+/* pages/index/index.wxss */
+.container {
+  padding: 20rpx;
+  padding-top: 40rpx;
+}
+
+.symptom-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15rpx;
+  margin-bottom: 30rpx;
+}
+
+.tag-item {
+  padding: 12rpx 24rpx;
+  background: #f0f0f0;
+  border-radius: 30rpx;
+  font-size: 26rpx;
+  color: #333;
+}
+
+.result-card {
+  margin-top: 20rpx;
+}
+
+.result-content {
+  font-size: 28rpx;
+  color: #555;
+  line-height: 1.8;
+  margin-top: 20rpx;
+}
