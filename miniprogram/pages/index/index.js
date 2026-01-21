@@ -70,6 +70,7 @@ Page({
           header: {
             'content-type': 'application/json'
           },
+          timeout: 60000, // 60秒超时
           success: resolve,
           fail: reject
         })
@@ -97,8 +98,10 @@ Page({
       // 设置紧急程度
       this.setUrgency(result.urgency)
 
-      // 保存到历史记录
-      this.saveHistory(message, result)
+      // 保存到历史记录（确保数据完整）
+      if (result.diagnosis && result.diagnosis.mostLikely) {
+        this.saveHistory(message, result)
+      }
 
       wx.showToast({
         title: '问诊完成',

@@ -6,8 +6,14 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
+
+// 增加超时时间
+app.use((req, res, next) => {
+  res.setTimeout(60000); // 60秒超时
+  next();
+});
 
 // 创建医疗图实例
 const medicalGraph = createMedicalGraph();
@@ -35,17 +41,25 @@ app.post('/api/consult', async (req, res) => {
       messages: [{ content: message }],
     });
 
+    console.log('完整结果:', JSON.stringify(result, null, 2));
+
     // 提取结果
-    const finalMessage = result.messages[result.messages.length - 1];
+    const finalMessage = result.messages?.[result.messages.length - 1];
+    if (!finalMessage) {
+      throw new Error('未生成回复消息');
+    }
+
     const response = {
       success: true,
-      content: finalMessage.content,
-      symptoms: result.symptoms,
-      diagnosis: result.diagnosis,
-      recommendations: result.recommendations,
-      urgency: result.symptoms?.urgency || result.urgency,
-      needsDoctor: result.needsDoctor || result.symptoms?.needsEmergencyCare,
+      content: finalMessage.content || '暂无详细回复',
+      symptoms: result.symptoms || null,
+      diagnosis: result.diagnosis || null,
+      recommendations: result.recommendations || null,
+      urgency: result.symptoms?.urgency || result.urgency || 'low',
+      needsDoctor: result.needsDoctor || result.symptoms?.needsEmergencyCare || false,
     };
+
+    console.log('响应数据:', JSON.stringify(response, null, 2));
 
     console.log('✅ 问诊完成\n');
 

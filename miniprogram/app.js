@@ -4,6 +4,7 @@ App({
   },
   globalData: {
     userInfo: null,
-    apiBaseUrl: 'http://192.168.10.166:3001' // 你的后端服务地址
+    // apiBaseUrl: 'http://localhost:3001'
+    apiBaseUrl: 'http://192.168.2.156:3001' // 你的后端服务地址
   }
 })
